@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tashrif - Kamus Bahasa Arab</title>
+    
+    <!-- Meta Tags -->
+    <meta name="description" content="Pentashrif kata bahasa Arab otomatis menggunakan AI. Tashrif Istilahi dan Lughawi lengkap.">
+    <meta name="keywords" content="tashrif, bahasa arab, nahwu, sharaf, ai, cohere">
+    <meta name="author" content="Tashrif AI">
+    <meta name="theme-color" content="#2D5F3F">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/images/logo.png">
+    <!-- Fallback favicon jika logo.png tidak ada -->
+    <link rel="alternate icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     SPLASH SCREEN
+     
+     CARA GANTI LOGO:
+     1. Upload logo Anda ke: assets/images/logo.png
+     2. Uncomment baris <img> di bawah
+     3. Comment/hapus baris <i class="fas...">
+     
+     Ukuran recommended: 200x200px, format PNG dengan transparansi
+═══════════════════════════════════════════════ -->
+<div id="splashScreen" class="splash-screen">
+    <!-- Animated particles background -->
+    <div class="splash-particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+    
+    <!-- Glowing orbs -->
+    <div class="splash-orb splash-orb-1"></div>
+    <div class="splash-orb splash-orb-2"></div>
+    <div class="splash-orb splash-orb-3"></div>
+    
+    <!-- Main content -->
+    <div class="splash-content">
+        <!-- Animated logo container -->
+        <div class="splash-logo-wrapper">
+            <div class="splash-logo-ring"></div>
+            <div class="splash-logo-ring splash-logo-ring-2"></div>
+            
+            <div class="splash-logo">
+                <!-- ============================================
+                     PILIHAN LOGO SPLASH SCREEN:
+                     
+                     OPSI 1: Pakai Logo Image (RECOMMENDED)
+                     Uncomment 3 baris di bawah ini:
+                ============================================= -->
+                <img src="assets/images/logo.png" 
+                     alt="Tashrif AI Logo" 
+                     class="splash-logo-img">
+                
+                <!-- ============================================
+                     OPSI 2: Pakai Icon Font Awesome (DEFAULT)
+                     Comment/hapus baris ini jika pakai logo image:
+                ============================================= -->
+                 <!--<i class="fas fa-book-quran splash-logo-icon"></i> -->
+                
+                <!-- ============================================
+                     OPSI 3: Pakai Emoji (Alternative)
+                     Uncomment baris di bawah:
+                ============================================= -->
+                <!-- <span class="splash-logo-emoji">📖</span> -->
+            </div>
+        </div>
+        
+        <!-- Animated text -->
+        <h1 class="splash-title">
+            <span class="splash-char" style="--i:0">T</span>
+            <span class="splash-char" style="--i:1">a</span>
+            <span class="splash-char" style="--i:2">s</span>
+            <span class="splash-char" style="--i:3">h</span>
+            <span class="splash-char" style="--i:4">r</span>
+            <span class="splash-char" style="--i:5">i</span>
+            <span class="splash-char" style="--i:6">f</span>
+            <span class="splash-char" style="--i:7"> </span>
+            <span class="splash-char" style="--i:8">A</span>
+            <span class="splash-char" style="--i:9">I</span>
+        </h1>
+        
+        <p class="splash-subtitle">
+            <span class="splash-subtitle-line">Kamus Bahasa Arab</span>
+        </p>
+        
+        <!-- Progress bar -->
+        <div class="splash-progress">
+            <div class="splash-progress-bar"></div>
+        </div>
+        
+        <div class="splash-status">Memuat aplikasi...</div>
+    </div>
+    
+    <!-- Decorative Arabic calligraphy -->
+    <div class="splash-decoration splash-deco-top">بِسْمِ اللهِ</div>
+    <div class="splash-decoration splash-deco-bottom">الرَّحْمٰنِ الرَّحِيْمِ</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SIDEBAR HISTORY
+═══════════════════════════════════════════════ -->
+<div id="historyOverlay" class="history-overlay" onclick="App.closeHistory()"></div>
+<div id="historySidebar" class="history-sidebar">
+    <div class="history-header">
+        <span class="history-title">
+            <i class="fas fa-history history-title-icon"></i>
+            Riwayat Pencarian
+        </span>
+        <button class="history-close" onclick="App.closeHistory()" aria-label="Tutup riwayat">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <div id="historyList" class="history-list">
+        <!-- Items will be rendered by JS -->
+    </div>
+    
+    <div class="history-footer">
+        <button class="btn-clear-history" onclick="App.clearHistory()">
+            <i class="fas fa-trash-alt"></i>
+            Hapus Semua Riwayat
+        </button>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     NAVIGATION
+     
+     CARA GANTI LOGO NAVBAR:
+     1. Upload logo Anda ke: assets/images/logo.png
+     2. Uncomment baris <img> di bawah
+     3. Comment/hapus baris <i class="fas...">
+     
+     Ukuran recommended: 100x100px, format PNG dengan transparansi
+═══════════════════════════════════════════════ -->
+<nav class="nav">
+    <div class="nav-left">
+        <div class="nav-logo">
+            <!-- ============================================
+                 PILIHAN LOGO NAVBAR:
+                 
+                 OPSI 1: Pakai Logo Image (RECOMMENDED)
+                 Uncomment 3 baris di bawah ini:
+            ============================================= -->
+            <img src="assets/images/logo.png" 
+                 alt="Tashrif AI" 
+                 class="nav-logo-img">
+            
+            <!-- ============================================
+                 OPSI 2: Pakai Icon Font Awesome (DEFAULT)
+                 Comment/hapus baris ini jika pakai logo image:
+            ============================================= -->
+             <!--<i class="fas fa-book-quran"></i> -->
+            
+            <!-- ============================================
+                 OPSI 3: Pakai Emoji (Alternative)
+                 Uncomment baris di bawah:
+            ============================================= -->
+            <!-- <span class="nav-logo-emoji">📖</span> -->
+        </div>
+        <div class="nav-brand">
+            <div class="nav-title">KamusGo</div>
+            <div class="nav-subtitle">Powered Sabndev</div>
+        </div>
+    </div>
+    
+    <div class="nav-right">
+        <span class="nav-badge">
+            AI
+        </span>
+        <button class="nav-btn" onclick="App.openHistory()" title="Riwayat" aria-label="Buka riwayat">
+            <i class="fas fa-history"></i>
+        </button>
+    </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════
+     CHAT AREA
+═══════════════════════════════════════════════ -->
+<main class="chat" id="chatArea" role="log" aria-live="polite">
+    <!-- Welcome message -->
+    <div class="welcome-message" id="welcomeMessage">
+        <div class="welcome-icon">
+            <!-- ============================================
+                 PILIHAN LOGO WELCOME ICON:
+                 
+                 OPSI 1: Pakai Logo Image
+                 Uncomment 3 baris di bawah ini:
+            ============================================= -->
+            <img src="assets/images/logo.png" 
+                 alt="Tashrif AI" 
+                 class="welcome-icon-img">
+            
+            <!-- ============================================
+                 OPSI 2: Pakai Icon Font Awesome (DEFAULT)
+            ============================================= -->
+              <!--<i class="fas fa-book-quran"></i> -->
+        </div>
+        <h2 class="welcome-title">Belajar Bahasa Arab Mudah</h2>
+        <p class="welcome-desc">Masukkan kata</p>
+        <div class="welcome-examples">
+            <span class="welcome-example-label">Contoh:</span>
+            <button class="welcome-example" onclick="App.searchExample('كَتَبَ')">كَتَبَ</button>
+            <button class="welcome-example" onclick="App.searchExample('ذَهَبَ')">ذَهَبَ</button>
+            <button class="welcome-example" onclick="App.searchExample('عَلَّمَ')">عَلَّمَ</button>
+        </div>
+    </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════
+     INPUT AREA
+═══════════════════════════════════════════════ -->
+<div class="input-wrapper">
+    <form class="input-row" id="formSubmit" onsubmit="App.handleSubmit(event)">
+        <input 
+            type="text" 
+            id="inputWord" 
+            class="input-field" 
+            placeholder="Ketik kata Arab, contoh: كَتَبَ" 
+            autocomplete="off"
+            required
+            aria-label="Kata Arab"
+        >
+        <button type="submit" class="send-btn" id="sendBtn">
+            <i class="fas fa-paper-plane"></i>
+            <span id="sendText">Cari</span>
+        </button>
+    </form>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCRIPTS
+     Urutan penting! Jangan diubah.
+═══════════════════════════════════════════════ -->
+<script src="assets/js/utils.js"></script>
+<script src="assets/js/prompts.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/app.js"></script>
+
+<!-- ═══════════════════════════════════════════════
+     LOGO ERROR HANDLER
+     Script untuk handle jika logo tidak ditemukan
+═══════════════════════════════════════════════ -->
+<script>
+// Handle logo loading errors
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to handle image error
+    function handleImageError(img) {
+        console.warn('Logo tidak ditemukan:', img.src);
+        
+        // Create fallback icon
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-book-quran';
+        
+        // Replace image with icon
+        img.parentNode.replaceChild(icon, img);
+    }
+    
+    // Add error handler to all logo images
+    const logoImages = document.querySelectorAll('.nav-logo-img, .splash-logo-img, .welcome-icon-img');
+    logoImages.forEach(img => {
+        img.addEventListener('error', function() {
+            handleImageError(this);
+        });
+        
+        // Also check if already failed to load
+        if (img.complete && img.naturalHeight === 0) {
+            handleImageError(img);
+        }
+    });
+});
+</script>
+
+</body>
+</html>
