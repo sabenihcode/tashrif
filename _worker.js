@@ -1,7 +1,8 @@
 /**
  * Cloudflare Pages Worker
- * Model: OpenAI GPT-OSS 20B 
- * Anti-timeout optimized
+ * Model: Qwen 3.8 Flash (Alibaba)
+ * Provider: zRouter.dev
+ * Ultra-fast Arabic processing
  */
 
 export default {
@@ -33,10 +34,10 @@ async function handleAPI(request, env, url) {
   if (request.method === 'GET') {
     return new Response(
       JSON.stringify({
-        message: '✅ Tashrif AI Online',
-        provider: 'NVIDIA',
-        model: 'openai/gpt-oss-20b',
-        description: 'Fast Arabic conjugation AI',
+        message: '✅ Tashrif AI - Ultra Fast Edition',
+        provider: 'zRouter.dev',
+        model: 'qwen3.8-flash',
+        description: 'Alibaba Qwen 3.8B Flash - Optimized for speed',
         status: 'online',
         timestamp: new Date().toISOString(),
       }),
@@ -68,15 +69,67 @@ async function handleAPI(request, env, url) {
         );
       }
       
-      const apiKey = env.NVIDIA_API_KEY;
+      // API Key hardcoded (as provided)
+      const apiKey = 'zr_41a799ef89361da161b8652d_iUpqUfCU1khGS8ZIUUIRDV1V_Y9-7D3NML21liuTh6o';
       
-      if (!apiKey) {
-        console.error('NVIDIA_API_KEY not found');
+      console.log('📤 Calling Qwen 3.8 Flash...');
+      
+      const zrouterResponse = await fetch(
+        'https://api.zrouter.dev/v1/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'qwen3.8-flash',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an Arabic grammar expert. Respond in valid JSON format only, without markdown code blocks.',
+              },
+              {
+                role: 'user',
+                content: prompt,
+              },
+            ],
+            temperature: 0.2,
+            max_tokens: 800,
+            stream: false,
+          }),
+        }
+      );
+      
+      if (!zrouterResponse.ok) {
+        const errorText = await zrouterResponse.text();
+        console.error('❌ zRouter Error:', zrouterResponse.status);
+        console.error('Details:', errorText);
+        
         return new Response(
           JSON.stringify({
-            error: 'API key not configured',
-            hint: 'Add NVIDIA_API_KEY in Settings',
+            error: `API Error ${zrouterResponse.status}`,
+            details: errorText,
           }),
+          {
+            status: zrouterResponse.status,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+      
+      const data = await zrouterResponse.json();
+      console.log('✅ Qwen 3.8 Flash Success');
+      
+      // OpenAI format: extract content
+      const content = data.choices?.[0]?.message?.content || '';
+      
+      if (!content) {
+        return new Response(
+          JSON.stringify({ error: 'Empty response' }),
           {
             status: 500,
             headers: {
@@ -87,140 +140,28 @@ async function handleAPI(request, env, url) {
         );
       }
       
-      console.log('Calling NVIDIA API...');
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 9000);
-      
-      try {
-        const nvidiaResponse = await fetch(
-          'https://integrate.api.nvidia.com/v1/chat/completions',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + apiKey,
-            },
-            body: JSON.stringify({
-              model: 'openai/gpt-oss-20b',
-              messages: [
-                {
-                  role: 'system',
-                  content: 'Arabic expert. JSON only.',
-                },
-                {
-                  role: 'user',
-                  content: prompt,
-                },
-              ],
-              temperature: 0.1,
-              top_p: 0.85,
-              max_tokens: 400,
-              stream: false,
-            }),
-            signal: controller.signal,
-          }
-        );
-        
-        clearTimeout(timeoutId);
-        
-        if (!nvidiaResponse.ok) {
-          const errorText = await nvidiaResponse.text();
-          console.error('NVIDIA Error:', nvidiaResponse.status);
-          
-          if (nvidiaResponse.status === 524) {
-            return new Response(
-              JSON.stringify({
-                error: 'Request timeout',
-                message: 'AI terlalu lama. Coba kata lebih sederhana.',
-                retryable: true,
-              }),
-              {
-                status: 524,
-                headers: {
-                  ...corsHeaders,
-                  'Content-Type': 'application/json',
-                },
-              }
-            );
-          }
-          
-          return new Response(
-            JSON.stringify({
-              error: 'NVIDIA API Error ' + nvidiaResponse.status,
-              details: errorText,
-            }),
-            {
-              status: nvidiaResponse.status,
-              headers: {
-                ...corsHeaders,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
+      // Return in compatible format
+      return new Response(
+        JSON.stringify({
+          text: content,
+          message: {
+            content: [{ text: content }],
+          },
+          model: 'qwen3.8-flash',
+          usage: data.usage,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=3600',
+          },
         }
-        
-        const data = await nvidiaResponse.json();
-        console.log('Success');
-        
-        const content = data.choices?.[0]?.message?.content || '';
-        
-        if (!content) {
-          return new Response(
-            JSON.stringify({ error: 'Empty response' }),
-            {
-              status: 500,
-              headers: {
-                ...corsHeaders,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-        }
-        
-        return new Response(
-          JSON.stringify({
-            text: content,
-            message: {
-              content: [{ text: content }],
-            },
-            model: 'openai/gpt-oss-20b',
-            usage: data.usage,
-          }),
-          {
-            status: 200,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-              'Cache-Control': 'public, max-age=3600',
-            },
-          }
-        );
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        
-        if (fetchError.name === 'AbortError') {
-          console.error('Request timeout');
-          return new Response(
-            JSON.stringify({
-              error: 'Request timeout',
-              message: 'AI butuh waktu >9 detik. Coba prompt lebih pendek.',
-              retryable: true,
-            }),
-            {
-              status: 504,
-              headers: {
-                ...corsHeaders,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-        }
-        
-        throw fetchError;
-      }
+      );
     } catch (error) {
-      console.error('Worker Error:', error);
+      console.error('❌ Worker Error:', error);
+      
       return new Response(
         JSON.stringify({
           error: error.message || 'Internal server error',
@@ -249,4 +190,4 @@ async function handleAPI(request, env, url) {
       },
     }
   );
-}
+  }
