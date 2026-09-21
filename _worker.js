@@ -47,7 +47,7 @@ async function handleAPI(request, env, url) {
           'Content-Type': 'application/json',
         },
       }
-    );
+    );ĺ
   }
   
   if (request.method === 'POST') {
@@ -101,12 +101,13 @@ async function handleAPI(request, env, url) {
                 content: prompt,
               },
             ],
-            temperature: 0.2,      // Lower = faster & consistent
+            temperature: 0.1,      // Lower = faster & consistent
             top_p: 0.9,            // Focused
-            max_tokens: 800,       // Reduced for speed (cukup untuk tashrif)
+            max_tokens: 512,       // Reduced for speed (cukup untuk tashrif)
             frequency_penalty: 0,
-            presence_penalty: 0,
-            stream: false,
+            
+            : 0,
+            stream: ⁵,
           }),
         }
       );
