@@ -1,24 +1,18 @@
 /**
- * Cloudflare Pages Advanced Mode Worker
- * File: _worker.js (di root repository)
- * 
- * File ini akan handle SEMUA request ke aplikasi
+ * Cloudflare Pages Worker with NVIDIA GLM-5.3
+ * Model: z-ai/glm-5.3 (Zhipu AI ChatGLM)
  */
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     
-    // ============================================
-    // ROUTE: /api/tashrif (API Endpoint)
-    // ============================================
+    // Route: API endpoint
     if (url.pathname.startsWith('/api')) {
       return handleAPI(request, env, url);
     }
     
-    // ============================================
-    // ROUTE: Static Assets (HTML, CSS, JS, Images)
-    // ============================================
+    // Route: Static assets
     return env.ASSETS.fetch(request);
   },
 };
@@ -45,9 +39,11 @@ async function handleAPI(request, env, url) {
   if (request.method === 'GET') {
     return new Response(
       JSON.stringify({
-        message: '✅ Tashrif AI Worker is ONLINE!',
+        message: '✅ Tashrif AI is ONLINE!',
+        provider: 'NVIDIA',
+        model: 'z-ai/glm-5.3 (ChatGLM)',
+        description: 'Chinese multilingual model with excellent Arabic support',
         endpoint: url.pathname,
-        method: 'POST required for AI processing',
         timestamp: new Date().toISOString(),
         status: 'working',
       }),
@@ -64,11 +60,11 @@ async function handleAPI(request, env, url) {
   // POST (Main AI handler)
   if (request.method === 'POST') {
     try {
-      // Parse request body
+      // Parse request
       const body = await request.json().catch(() => ({}));
-      const { prompt, model } = body;
+      const { prompt } = body;
       
-      // Validate prompt
+      // Validate
       if (!prompt || typeof prompt !== 'string') {
         return new Response(
           JSON.stringify({ error: 'Invalid prompt. String required.' }),
@@ -82,15 +78,15 @@ async function handleAPI(request, env, url) {
         );
       }
       
-      // Get API key from environment
-      const apiKey = env.COHERE_API_KEY;
+      // Get API key
+      const apiKey = env.NVIDIA_API_KEY;
       
       if (!apiKey) {
-        console.error('❌ COHERE_API_KEY not found in environment variables');
+        console.error('❌ NVIDIA_API_KEY not found');
         return new Response(
           JSON.stringify({
             error: 'API key not configured',
-            hint: 'Add COHERE_API_KEY in Cloudflare Pages Settings → Environment variables',
+            hint: 'Add NVIDIA_API_KEY in Cloudflare Pages Settings → Environment variables',
           }),
           {
             status: 500,
@@ -103,45 +99,47 @@ async function handleAPI(request, env, url) {
       }
       
       console.log('✅ API Key found');
-      console.log('📤 Calling Cohere API...');
-      console.log('Model:', model || 'command-r7b-12-2024');
+      console.log('📤 Calling NVIDIA GLM-5.3...');
       
-      // Call Cohere API
-      const cohereResponse = await fetch('https://api.cohere.com/v2/chat', {
+      // Call NVIDIA API with GLM-5.3 model
+      const nvidiaResponse = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: model || 'command-r7b-12-2024',
+          model: 'z-ai/glm-5.3',
           messages: [
+            {
+              role: 'system',
+              content: 'You are an expert in Arabic grammar (Nahwu and Sharaf). You provide accurate morphological analysis and conjugations of Arabic words. Always respond in valid JSON format without markdown code blocks.',
+            },
             {
               role: 'user',
               content: prompt,
             },
           ],
-          response_format: {
-            type: 'json_object',
-          },
-          temperature: 0.1,
-          max_tokens: 2560,
+          temperature: 0.3,  // Lower = more consistent
+          top_p: 0.95,
+          max_tokens: 2048,
+          stream: false,
         }),
       });
       
-      // Handle Cohere API error
-      if (!cohereResponse.ok) {
-        const errorText = await cohereResponse.text();
-        console.error('❌ Cohere API Error:', cohereResponse.status);
+      // Handle errors
+      if (!nvidiaResponse.ok) {
+        const errorText = await nvidiaResponse.text();
+        console.error('❌ NVIDIA API Error:', nvidiaResponse.status);
         console.error('Details:', errorText);
         
         return new Response(
           JSON.stringify({
-            error: `Cohere API Error ${cohereResponse.status}`,
+            error: `NVIDIA API Error ${nvidiaResponse.status}`,
             details: errorText,
           }),
           {
-            status: cohereResponse.status,
+            status: nvidiaResponse.status,
             headers: {
               ...corsHeaders,
               'Content-Type': 'application/json',
@@ -150,18 +148,45 @@ async function handleAPI(request, env, url) {
         );
       }
       
-      // Success - return Cohere response
-      const data = await cohereResponse.json();
-      console.log('✅ Cohere API Success');
+      // Parse response
+      const data = await nvidiaResponse.json();
+      console.log('✅ NVIDIA GLM-5.3 Success');
       
-      return new Response(JSON.stringify(data), {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=3600',
-        },
-      });
+      // Extract content (OpenAI format)
+      const content = data.choices?.[0]?.message?.content || '';
+      
+      if (!content) {
+        return new Response(
+          JSON.stringify({ error: 'Empty response from API' }),
+          {
+            status: 500,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+      
+      // Return in format compatible with frontend
+      return new Response(
+        JSON.stringify({
+          text: content,
+          message: {
+            content: [{ text: content }],
+          },
+          model: 'z-ai/glm-5.3',
+          usage: data.usage,
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=3600',
+          },
+        }
+      );
     } catch (error) {
       console.error('❌ Worker Error:', error);
       
