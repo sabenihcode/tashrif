@@ -1,6 +1,6 @@
 /**
  * Cloudflare Pages Worker
- * Model: OpenAI GPT-OSS 20B
+ * Model: OpenAI GPT-OSS 20B 
  * Anti-timeout optimized
  */
 
