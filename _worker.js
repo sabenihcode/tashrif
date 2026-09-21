@@ -1,7 +1,7 @@
 /**
  * Cloudflare Pages Worker
- * Model: Google Gemma 4 31B Instruct
- * Optimized for speed
+ * Model: OpenAI GPT-OSS 20B
+ * Anti-timeout optimized
  */
 
 export default {
@@ -33,10 +33,10 @@ async function handleAPI(request, env, url) {
   if (request.method === 'GET') {
     return new Response(
       JSON.stringify({
-        message: '✅ Tashrif AI - Powered by Google Gemma 4',
+        message: '✅ Tashrif AI Online',
         provider: 'NVIDIA',
-        model: 'google/gemma-4-31b-it',
-        description: 'Fast multilingual model with excellent Arabic support',
+        model: 'openai/gpt-oss-20b',
+        description: 'Fast Arabic conjugation AI',
         status: 'online',
         timestamp: new Date().toISOString(),
       }),
@@ -47,7 +47,7 @@ async function handleAPI(request, env, url) {
           'Content-Type': 'application/json',
         },
       }
-    );ĺ
+    );
   }
   
   if (request.method === 'POST') {
@@ -60,7 +60,10 @@ async function handleAPI(request, env, url) {
           JSON.stringify({ error: 'Invalid prompt' }),
           {
             status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
           }
         );
       }
@@ -68,121 +71,182 @@ async function handleAPI(request, env, url) {
       const apiKey = env.NVIDIA_API_KEY;
       
       if (!apiKey) {
-        console.error('❌ NVIDIA_API_KEY not found');
+        console.error('NVIDIA_API_KEY not found');
         return new Response(
-          JSON.stringify({ error: 'API key not configured' }),
+          JSON.stringify({
+            error: 'API key not configured',
+            hint: 'Add NVIDIA_API_KEY in Settings',
+          }),
           {
             status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
           }
         );
       }
       
-      console.log('📤 Calling Gemma 4 31B...');
+      console.log('Calling NVIDIA API...');
       
-      // Call NVIDIA API with Gemma 4
-      const nvidiaResponse = await fetch(
-        'https://integrate.api.nvidia.com/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'google/gemma-4-31b-it',
-            messages: [
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 9000);
+      
+      try {
+        const nvidiaResponse = await fetch(
+          'https://integrate.api.nvidia.com/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + apiKey,
+            },
+            body: JSON.stringify({
+              model: 'openai/gpt-oss-20b',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'Arabic expert. JSON only.',
+                },
+                {
+                  role: 'user',
+                  content: prompt,
+                },
+              ],
+              temperature: 0.1,
+              top_p: 0.85,
+              max_tokens: 400,
+              stream: false,
+            }),
+            signal: controller.signal,
+          }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        if (!nvidiaResponse.ok) {
+          const errorText = await nvidiaResponse.text();
+          console.error('NVIDIA Error:', nvidiaResponse.status);
+          
+          if (nvidiaResponse.status === 524) {
+            return new Response(
+              JSON.stringify({
+                error: 'Request timeout',
+                message: 'AI terlalu lama. Coba kata lebih sederhana.',
+                retryable: true,
+              }),
               {
-                role: 'system',
-                content: 'You are an Arabic grammar expert. Respond in valid JSON only, no markdown.',
+                status: 524,
+                headers: {
+                  ...corsHeaders,
+                  'Content-Type': 'application/json',
+                },
+              }
+            );
+          }
+          
+          return new Response(
+            JSON.stringify({
+              error: 'NVIDIA API Error ' + nvidiaResponse.status,
+              details: errorText,
+            }),
+            {
+              status: nvidiaResponse.status,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
               },
-              {
-                role: 'user',
-                content: prompt,
-              },
-            ],
-            temperature: 0.1,      // Lower = faster & consistent
-            top_p: 0.9,            // Focused
-            max_tokens: 512,       // Reduced for speed (cukup untuk tashrif)
-            frequency_penalty: 0,
-            
-            : 0,
-            stream: ⁵,
-          }),
+            }
+          );
         }
-      );
-      
-      if (!nvidiaResponse.ok) {
-        const errorText = await nvidiaResponse.text();
-        console.error('❌ NVIDIA Error:', nvidiaResponse.status);
-        console.error('Details:', errorText);
+        
+        const data = await nvidiaResponse.json();
+        console.log('Success');
+        
+        const content = data.choices?.[0]?.message?.content || '';
+        
+        if (!content) {
+          return new Response(
+            JSON.stringify({ error: 'Empty response' }),
+            {
+              status: 500,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+        }
         
         return new Response(
           JSON.stringify({
-            error: `NVIDIA API Error ${nvidiaResponse.status}`,
-            details: errorText,
+            text: content,
+            message: {
+              content: [{ text: content }],
+            },
+            model: 'openai/gpt-oss-20b',
+            usage: data.usage,
           }),
           {
-            status: nvidiaResponse.status,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+              'Cache-Control': 'public, max-age=3600',
+            },
           }
         );
-      }
-      
-      const data = await nvidiaResponse.json();
-      console.log('✅ Gemma 4 Success');
-      
-      const content = data.choices?.[0]?.message?.content || '';
-      
-      if (!content) {
-        return new Response(
-          JSON.stringify({ error: 'Empty response' }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      
-      // Return compatible format
-      return new Response(
-        JSON.stringify({
-          text: content,
-          message: {
-            content: [{ text: content }],
-          },
-          model: 'google/gemma-4-31b-it',
-          usage: data.usage,
-        }),
-        {
-          status: 200,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=3600',
-          },
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          console.error('Request timeout');
+          return new Response(
+            JSON.stringify({
+              error: 'Request timeout',
+              message: 'AI butuh waktu >9 detik. Coba prompt lebih pendek.',
+              retryable: true,
+            }),
+            {
+              status: 504,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
         }
-      );
+        
+        throw fetchError;
+      }
     } catch (error) {
-      console.error('❌ Worker Error:', error);
-      
+      console.error('Worker Error:', error);
       return new Response(
         JSON.stringify({
           error: error.message || 'Internal server error',
         }),
         {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
         }
       );
     }
   }
   
   return new Response(
-    JSON.stringify({ error: 'Method Not Allowed' }),
+    JSON.stringify({
+      error: 'Method Not Allowed',
+      allowed: ['GET', 'POST', 'OPTIONS'],
+    }),
     {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
     }
   );
 }
